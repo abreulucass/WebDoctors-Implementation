@@ -19,26 +19,64 @@ const storage = multer.diskStorage({
     }
 });
 
-const upload = multer({ storage: storage });
+// CORRIGIDO APÓS OS TESTES
+const fileFilter = (req, file, cb) => {
+    // Verificar o mimetype do arquivo para permitir apenas imagens e PDFs
+    if (file.mimetype === 'image/jpeg' || // Para arquivos .jpg
+        file.mimetype === 'image/png' ||  // Para arquivos .png
+        file.mimetype === 'application/pdf') { // Para arquivos .pdf
+        cb(null, true); // Aceita o arquivo
+    } else {
+        // Rejeita o arquivo e passa um erro. A mensagem deste erro será capturada
+        // no `catch` da rota e enviada como resposta ao frontend.
+        cb(new Error('Formato de arquivo não permitido. Apenas imagens e PDFs são aceitos.'), false);
+    }
+};
+
+
+// Modifique a inicialização do 'upload' para incluir o 'fileFilter'
+const upload = multer({
+    storage: storage,
+    fileFilter: fileFilter, // <--- ADIÇÃO AQUI
+    // Opcional: Adicionar limite de tamanho do arquivo
+    // limits: {
+    //     fileSize: 1024 * 1024 * 5 // Limite de 5MB (exemplo)
+    // }
+});
 
 // Rota para enviar exame
 router.post('/enviar-exame', upload.single('exame'), async (req, res) => {
     try {
-        const { consultaId } = req.body; // Pegamos o ID da consulta do corpo da requisição
-        const filePath = path.join('uploads', 'exames', req.file.filename); // Caminho do arquivo salvo no servidor
+        // req.file só existirá se o `fileFilter` permitir o upload
+        if (!req.file) {
+            // Se chegou aqui e não tem req.file, é porque o fileFilter rejeitou.
+            // O erro do Multer é capturado pelo middleware de tratamento de erros,
+            // ou pode ser capturado aqui se Multer for configurado para isso.
+            // Para garantir que a mensagem do fileFilter seja usada, você pode precisar
+            // de um middleware de erro específico para Multer, mas o 'catch' geral
+            // costuma pegar o erro do Multer quando o upload falha no filtro.
+            return res.status(400).json({ success: false, message: 'Nenhum arquivo enviado ou formato não permitido.' });
+        }
 
-        // Encontrar a consulta pelo ID e associar o caminho do exame
-        const consulta = await Consulta.findById(consultaId);
+        const { consultaId } = req.body;
+        const filePath = path.join('uploads', 'exames', req.file.filename);
+
+        const consulta = await Consulta.findById(new mongoose.Types.ObjectId(consultaId)); // Use new mongoose.Types.ObjectId
         if (!consulta) {
             return res.status(404).json({ success: false, message: 'Consulta não encontrada' });
         }
 
-        consulta.exame = filePath; // Atualiza o campo 'exame' da consulta
-        await consulta.save(); // Salva a consulta com o novo exame
+        consulta.exame = filePath;
+        await consulta.save();
 
         res.status(200).json({ success: true, message: 'Exame enviado com sucesso!' });
     } catch (err) {
-        console.error(err);
+        console.error("Erro no upload do exame:", err);
+        // Verifica se o erro veio do fileFilter do Multer
+        if (err instanceof multer.MulterError && err.message === 'Formato de arquivo não permitido. Apenas imagens e PDFs são aceitos.') {
+            return res.status(400).json({ success: false, message: err.message });
+        }
+        // Tratamento para outros erros
         res.status(500).json({ success: false, message: 'Erro ao enviar o exame' });
     }
 });

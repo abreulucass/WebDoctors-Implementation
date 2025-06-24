@@ -16,9 +16,17 @@
   /**
    * Apply .scrolled class to the body as the page is scrolled down
    */
+
+  // Modificado após o teste 1 (acrescentando o if)
   function toggleScrolled() {
     const selectBody = document.querySelector('body');
-    const selectHeader = document.querySelector('#header');
+    const selectHeader = document.querySelector('#header'); // Tenta encontrar o elemento #header
+
+    // ADIÇÃO: Verifica se selectHeader existe antes de tentar acessá-lo
+    if (!selectHeader) {
+      return; // Se #header não for encontrado, a função termina aqui para evitar o erro.
+    }
+
     if (!selectHeader.classList.contains('scroll-up-sticky') && !selectHeader.classList.contains('sticky-top') && !selectHeader.classList.contains('fixed-top')) return;
     window.scrollY > 100 ? selectBody.classList.add('scrolled') : selectBody.classList.remove('scrolled');
   }
@@ -543,6 +551,8 @@ function closeEnviarExameModal() {
   modal.style.display = 'none';
 }
 
+// modificado depois dos testes
+
 function enviarExame(consultaId, file) {
   const formData = new FormData();
   formData.append('exame', file);
@@ -552,18 +562,25 @@ function enviarExame(consultaId, file) {
       method: 'POST',
       body: formData
   })
-  .then(response => response.json())
+  .then(response => {
+      return response.json().then(data => {
+          if (response.ok) { // Resposta HTTP OK (status 2xx)
+              return data; // Retorna os dados de sucesso
+          } else { // Resposta HTTP de ERRO (status 4xx, 5xx)
+              throw new Error(data.message || 'Erro desconhecido do servidor.');
+          }
+      });
+  })
   .then(data => {
-      if (data.success) {
-          alert('Exame enviado com sucesso!');
-      } else {
-          alert('Erro ao enviar o exame: ' + data.message);
-      }
-      closeEnviarExameModal();
+      // Este .then só será executado se `response.ok` for `true`
+      alert('Exame enviado com sucesso!');
+      closeEnviarExameModal(); // <-- Manter AQUI para sucesso
   })
   .catch(error => {
       console.error('Erro:', error);
-      alert('Erro ao enviar o exame.');
+      alert('Erro ao enviar o exame: ' + error.message);
+      // REMOVA A LINHA ABAIXO:
+      // closeEnviarExameModal(); // <--- REMOVER ESTA LINHA PARA QUE O MODAL PERMANEÇA ABERTO EM CASO DE ERRO
   });
 }
 
