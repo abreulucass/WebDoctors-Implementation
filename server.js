@@ -24,10 +24,10 @@ const app = express();
 
 // Configuração de sessões
 app.use(session({
-    secret: 'suaChaveSecreta', // Substitua por uma chave segura
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false } // Alterar para `true` se usar HTTPS
+    secret: 'suaChaveSecreta', // Substituir por uma chave segura
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false } // Alterar para `true` se usar HTTPS
 }));
 
 // ====================================================================================================================
@@ -46,13 +46,13 @@ app.use('/login-assets', express.static(path.join(__dirname, 'assets', 'login', 
 app.use('/menu', express.static(path.join(__dirname, 'assets', 'menu')));
 
 // Configurar a pasta "views" como estática
-app.use(express.static(path.join(__dirname, 'views')));  // Certifique-se de que as views estão sendo servidas corretamente
+app.use(express.static(path.join(__dirname, 'views'))); // Certifique-se de que as views estão sendo servidas corretamente
 
 // Servir arquivos de upload (se houver uma pasta de uploads acessível publicamente)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // <--- Adicione isto se quiser servir os arquivos de upload
 
 //rotas
-app.use('/', consultasRoutes) // Aqui suas rotas de paciente, incluindo /enviar-exame
+app.use('/', consultasRoutes) // Rotas de paciente, incluindo /enviar-exame
 app.use('/medicos', medicosRoutes); // Rotas de médicos (subrota para gerenciar horários)
 app.use('/', loginRoutes);
 app.use('/', registerRoutes);
